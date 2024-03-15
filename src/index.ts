@@ -1,6 +1,6 @@
 require('dotenv').config()
 import {  PrismaClient } from '@prisma/client'
-import express from 'express'
+import express, { response } from 'express'
 import {genSaltSync, hashSync, compareSync } from 'bcrypt'
 import cors from 'cors'
 import {sign} from 'jsonwebtoken'
@@ -137,7 +137,7 @@ app.get('/stall/user/:id', async(req,res) => {
     }
   })
   if(!getStall) {
-    res.status(400).json({
+    res.status(404).json({
       message: "stall is not found"
     })
   }
@@ -166,7 +166,7 @@ app.put('/stall/:id', async(req,res) => {
     }
   })
   if(!getStall) {
-    res.status(400).json({
+    res.status(404).json({
       message: "stall not found"
     })
   }
@@ -194,9 +194,17 @@ app.get('/exhitors/bending', async(req,res) => {
         user_status: "UU"
       }
     })
-    console.log(exhibitors)
+    const responseExhibitor = exhibitors.map(exhibitor => {
+      const {userId, user_status, ...rest} = exhibitor
+      return {
+        id: userId,
+        status: user_status,
+        ...rest
+      }
+    })
+    console.log(responseExhibitor)
     res.status(200).json({
-      results: exhibitors
+      results: responseExhibitor
     })
   }catch(error){
     console.log(error)
@@ -214,7 +222,18 @@ app.get('/exhitors/approved', async(req,res) => {
         user_status: "AU"
       }
     })
-    console.log(exhibitors)
+    const responseExhibitor = exhibitors.map(exhibitor => {
+      const {userId, user_status, ...rest} = exhibitor
+      return {
+        id: userId,
+        status: user_status,
+        ...rest
+      }
+    })
+    console.log(responseExhibitor)
+    res.status(200).json({
+      results: responseExhibitor
+    })
   }catch(error){
     console.log(error)
     res.status(404).json({
@@ -223,8 +242,29 @@ app.get('/exhitors/approved', async(req,res) => {
   }
 })
 
-// router.get('/bending', bendingUsers)
-// router.get('/approved', approvedUsers)
+app.post('/user/authorize', async(req,res) => {
+  const data = req.body
+  console.log(data)
+  if(data.admin_user_id === 1){
+    const userAuthorize = await prisma.user.update({
+      where: {
+        email: data.emailId,
+        userId: data.userId
+      },
+      data: {
+        user_status: "AU"
+      }
+    })
+    console.log(userAuthorize)
+    res.status(203).json({
+      message: "user authorized success"
+    })
+  }
+  res.status(404).json({
+    message: "admin not found"
+  })
+})
+
 // '/user/authorize'
 // router.post('/', createUser)
 // router.get('/', checkToken, getUsers)
